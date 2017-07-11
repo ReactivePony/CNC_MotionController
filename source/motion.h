@@ -65,5 +65,7 @@ void MOTION_SetCenterZ(float centerZ);
 void MOTION_SetSpeed(uint32_t speed);
 void MOTION_SetSpeedMode(motion_speed_mode_t speed_mode);
 
+void MOTION_SetPlane(motion_plane_t plane);
+
 
 #endif /* SOURCE_MOTION_H_ */
