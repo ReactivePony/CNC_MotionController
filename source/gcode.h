@@ -14,6 +14,8 @@ typedef enum _gcode_command
 	kGCODE_G01 = 1,
 	kGCODE_G02 = 2,
 	kGCODE_G03 = 3,
+	kGCODE_G04 = 4,
+
 	kGCODE_NC = 100,
 
 } gcode_command_t;

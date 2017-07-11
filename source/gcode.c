@@ -12,6 +12,7 @@
 
 #include "gcode.h"
 #include "motion.h"
+#include "misc.h"
 
 gcode_command_t command = kGCODE_NC;
 
@@ -40,6 +41,9 @@ void GCODE_ExecuteFrame(gcode_frame_t gcode_frame)
 			MOTION_SetSpeedMode(kMOTION_Normal);
 			MOTION_SetState(kMOTION_CircleCCW);
 			break;
+		case kGCODE_G04: // Test
+			//Delay(1000000);
+			break;
 		default:
 			break;
 	}
@@ -52,15 +56,22 @@ void GCODE_ExecuteParams(gcode_param_t params[], uint8_t paramsCount)
 		switch (params[i].type)
 		{
 			case kGCODE_X:
-				MOTION_SetDestX(params[i].value);
+				if(command == kGCODE_G00 || command == kGCODE_G01 || command == kGCODE_G02 || command == kGCODE_G03)
+					MOTION_SetDestX(params[i].value);
+				if(command == kGCODE_G04)
+					Delay(params[i].value * 1000000);
 				break;
 			case kGCODE_Y:
-				MOTION_SetDestY(params[i].value);
+				if(command == kGCODE_G00 || command == kGCODE_G01 || command == kGCODE_G02 || command == kGCODE_G03)
+					MOTION_SetDestY(params[i].value);
 				break;
 			case kGCODE_Z:
-				MOTION_SetDestZ(params[i].value);
+				if(command == kGCODE_G00 || command == kGCODE_G01 || command == kGCODE_G02 || command == kGCODE_G03)
+					MOTION_SetDestZ(params[i].value);
 				break;
 			case kGCODE_P:
+				if(command == kGCODE_G04)
+					Delay(params[i].value * 1000);
 				break;
 			case kGCODE_F:
 				MOTION_SetSpeed(params[i].value);
@@ -126,6 +137,8 @@ gcode_frame_t GCODE_Parse(char* gcode)
 				command = kGCODE_G02;
 			else if(atoi(str) == 3)
 				command = kGCODE_G03;
+			else if(atoi(str) == 4)
+				command = kGCODE_G04;
 		}
 
 		if(strstr(buffer[i], "X") != NULL)
@@ -147,6 +160,18 @@ gcode_frame_t GCODE_Parse(char* gcode)
 			strncpy(str, buffer[i] + 1, strlen(buffer[i]) - 1);
 
 			params[paramCount].type = kGCODE_Y;
+			params[paramCount].value = atof(str);
+
+			paramCount++;
+		}
+
+		if(strstr(buffer[i], "P") != NULL)
+		{
+			char str[strlen(buffer[i])];
+
+			strncpy(str, buffer[i] + 1, strlen(buffer[i]) - 1);
+
+			params[paramCount].type = kGCODE_P;
 			params[paramCount].value = atof(str);
 
 			paramCount++;
