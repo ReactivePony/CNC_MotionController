@@ -41,8 +41,16 @@ void GCODE_ExecuteFrame(gcode_frame_t gcode_frame)
 			MOTION_SetSpeedMode(kMOTION_Normal);
 			MOTION_SetState(kMOTION_CircleCCW);
 			break;
-		case kGCODE_G04: // Test
-			//Delay(1000000);
+		case kGCODE_G04:
+			break;
+		case kGCODE_G17:
+			MOTION_SetPlane(kMOTION_PlaneXY);
+			break;
+		case kGCODE_G18:
+			MOTION_SetPlane(kMOTION_PlaneXZ);
+			break;
+		case kGCODE_G19:
+			MOTION_SetPlane(kMOTION_PlaneYZ);
 			break;
 		default:
 			break;
@@ -139,6 +147,12 @@ gcode_frame_t GCODE_Parse(char* gcode)
 				command = kGCODE_G03;
 			else if(atoi(str) == 4)
 				command = kGCODE_G04;
+			else if(atoi(str) == 17)
+				command = kGCODE_G17;
+			else if(atoi(str) == 18)
+				command = kGCODE_G18;
+			else if(atoi(str) == 19)
+				command = kGCODE_G19;
 		}
 
 		if(strstr(buffer[i], "X") != NULL)
@@ -160,6 +174,18 @@ gcode_frame_t GCODE_Parse(char* gcode)
 			strncpy(str, buffer[i] + 1, strlen(buffer[i]) - 1);
 
 			params[paramCount].type = kGCODE_Y;
+			params[paramCount].value = atof(str);
+
+			paramCount++;
+		}
+
+		if(strstr(buffer[i], "Z") != NULL)
+		{
+			char str[strlen(buffer[i])];
+
+			strncpy(str, buffer[i] + 1, strlen(buffer[i]) - 1);
+
+			params[paramCount].type = kGCODE_Z;
 			params[paramCount].value = atof(str);
 
 			paramCount++;
