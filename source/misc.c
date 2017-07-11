@@ -10,7 +10,7 @@
 #include "misc.h"
 
 
-void Delay(uint16_t usec)
+void Delay(uint32_t usec)
 {
 	for(int i = 0; i < SystemCoreClock / 10000000 * usec; i++)
 	{
