@@ -12,179 +12,178 @@
 #include "interp.h"
 
 interp_result_t interp_result;
-interp_linear_result_t interp_linear_result;
 
-interp_linear_result_t INTERP_LinearCalcStep(int32_t destStepX, int32_t destStepY, int32_t destStepZ, int32_t originStepX, int32_t originStepY, int32_t originStepZ, int32_t errX, int32_t errY, int32_t errZ)
+interp_result_t INTERP_LinearCalcStep(int32_t destStepX, int32_t destStepY, int32_t destStepZ, int32_t originStepX, int32_t originStepY, int32_t originStepZ, int32_t errX, int32_t errY, int32_t errZ)
 {
-	interp_linear_result.stepX = 0;
-	interp_linear_result.stepY = 0;
-	interp_linear_result.stepZ = 0;
+	interp_result.stepX = 0;
+	interp_result.stepY = 0;
+	interp_result.stepZ = 0;
 
 	if(errX < 0)
 	{
-		errX += fabs(destStepY) + fabs(destStepZ);
+		errX += fabs(destStepY - originStepY) + fabs(destStepZ - originStepZ);
 
-		if(destStepX >= 0)
-			interp_linear_result.stepX = 1;
+		if(destStepX - originStepX > 0)
+			interp_result.stepX = 1;
 		else
-			interp_linear_result.stepX = -1;
+			interp_result.stepX = -1;
 	}
 	else
-		errX -= fabs(destStepX);
+		errX -= fabs(destStepX - originStepX);
 
 	if(errY < 0)
 	{
-		errY += fabs(destStepX) + fabs(destStepZ);
+		errY += fabs(destStepX - originStepX) + fabs(destStepZ - originStepZ);
 
-		if(destStepY >= 0)
-			interp_linear_result.stepY = 1;
+		if(destStepY - originStepY > 0)
+			interp_result.stepY = 1;
 		else
-			interp_linear_result.stepY = -1;
+			interp_result.stepY = -1;
 	}
 	else
-		errY -= fabs(destStepY);
+		errY -= fabs(destStepY - originStepY);
 
 	if(errZ < 0)
 	{
-		errZ += fabs(destStepX) + fabs(destStepY);
+		errZ += fabs(destStepX - originStepX) + fabs(destStepY - originStepY);
 
-		if(destStepZ >= 0)
-			interp_linear_result.stepZ = 1;
+		if(destStepZ - originStepZ > 0)
+			interp_result.stepZ = 1;
 		else
-			interp_linear_result.stepZ = -1;
+			interp_result.stepZ = -1;
 	}
 	else
-		errZ -= fabs(destStepZ);
+		errZ -= fabs(destStepZ - originStepZ);
 
-	interp_linear_result.errX = errX;
-	interp_linear_result.errY = errY;
-	interp_linear_result.errZ = errZ;
-
-	return interp_linear_result;
-}
-
-interp_result_t INTERP_CircleCWCalcStep(int32_t currentStepA, int32_t currentStepB, int32_t centerStepA, int32_t centerStepB, int32_t F)
-{
-	interp_result.stepA = 0;
-	interp_result.stepB = 0;
-
-    if(currentStepA - centerStepA >= 0 && currentStepB - centerStepB >= 0) // QUADRANT 1
-    {
-		if(F >= 0)
-		{
-			F = F - 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = 1;
-		}
-		else
-		{
-			F = F + 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = -1;
-		}
-    }
-    else if(currentStepA - centerStepA < 0 && currentStepB - centerStepB >= 0) // QUADRANT 2
-    {
-		if(F >= 0)
-		{
-			F = F + 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = 1;
-		}
-		else
-		{
-			F = F + 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = 1;
-		}
-    }
-    else if (currentStepA - centerStepA < 0 && currentStepB - centerStepB < 0) // QUADRANT 3
-    {
-		if(F >= 0)
-		{
-			F = F + 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = -1;
-		}
-		else
-		{
-			F = F - 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = 1;
-		}
-    }
-    else if(currentStepA - centerStepA >= 0 && currentStepB - centerStepB < 0) // QUADRANT 4
-    {
-		if(F >= 0)
-		{
-			F = F - 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = -1;
-		}
-		else
-		{
-			F = F - 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = -1;
-		}
-    }
-
-	interp_result.F = F;
+	interp_result.errX = errX;
+	interp_result.errY = errY;
+	interp_result.errZ = errZ;
 
 	return interp_result;
 }
 
-interp_result_t INTERP_CircleCCWCalcStep(int32_t currentStepA, int32_t currentStepB, int32_t centerStepA, int32_t centerStepB, int32_t F)
+interp_result_t INTERP_CircleCWCalcStep(int32_t currentstepX, int32_t currentstepY, int32_t centerstepX, int32_t centerstepY, int32_t F)
 {
-	interp_result.stepA = 0;
-	interp_result.stepB = 0;
+	interp_result.stepX = 0;
+	interp_result.stepY = 0;
 
-	if(currentStepA - centerStepA >= 0 && currentStepB - centerStepB >= 0) // QUADRANT 1
+    if(currentstepX - centerstepX >= 0 && currentstepY - centerstepY >= 0) // QUADRANT 1
     {
 		if(F >= 0)
 		{
-			F = F - 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = -1;
+			F = F - 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = 1;
 		}
 		else
 		{
-			F = F + 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = 1;
+			F = F + 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = -1;
 		}
     }
-	else if(currentStepA - centerStepA < 0 && currentStepB - centerStepB >= 0) // QUADRANT 2
+    else if(currentstepX - centerstepX < 0 && currentstepY - centerstepY >= 0) // QUADRANT 2
     {
 		if(F >= 0)
 		{
-			F = F + 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = -1;
+			F = F + 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = 1;
 		}
 		else
 		{
-			F = F + 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = -1;
+			F = F + 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = 1;
 		}
     }
-	else if (currentStepA - centerStepA < 0 && currentStepB - centerStepB < 0) // QUADRANT 3
+    else if (currentstepX - centerstepX < 0 && currentstepY - centerstepY < 0) // QUADRANT 3
     {
 		if(F >= 0)
 		{
-			F = F + 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = 1;
+			F = F + 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = -1;
 		}
 		else
 		{
-			F = F - 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = -1;
+			F = F - 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = 1;
 		}
     }
-	else if(currentStepA - centerStepA >= 0 && currentStepB - centerStepB < 0) // QUADRANT 4
+    else if(currentstepX - centerstepX >= 0 && currentstepY - centerstepY < 0) // QUADRANT 4
     {
 		if(F >= 0)
 		{
-			F = F - 2 * (currentStepA - centerStepA) + 1;
-			interp_result.stepA = 1;
+			F = F - 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = -1;
 		}
 		else
 		{
-			F = F - 2 * (currentStepB - centerStepB) + 1;
-			interp_result.stepB = 1;
+			F = F - 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = -1;
 		}
     }
 
-	interp_result.F = F;
+	interp_result.errX = F;
+
+	return interp_result;
+}
+
+interp_result_t INTERP_CircleCCWCalcStep(int32_t currentstepX, int32_t currentstepY, int32_t centerstepX, int32_t centerstepY, int32_t F)
+{
+	interp_result.stepX = 0;
+	interp_result.stepY = 0;
+
+	if(currentstepX - centerstepX >= 0 && currentstepY - centerstepY >= 0) // QUADRANT 1
+    {
+		if(F >= 0)
+		{
+			F = F - 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = -1;
+		}
+		else
+		{
+			F = F + 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = 1;
+		}
+    }
+	else if(currentstepX - centerstepX < 0 && currentstepY - centerstepY >= 0) // QUADRANT 2
+    {
+		if(F >= 0)
+		{
+			F = F + 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = -1;
+		}
+		else
+		{
+			F = F + 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = -1;
+		}
+    }
+	else if (currentstepX - centerstepX < 0 && currentstepY - centerstepY < 0) // QUADRANT 3
+    {
+		if(F >= 0)
+		{
+			F = F + 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = 1;
+		}
+		else
+		{
+			F = F - 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = -1;
+		}
+    }
+	else if(currentstepX - centerstepX >= 0 && currentstepY - centerstepY < 0) // QUADRANT 4
+    {
+		if(F >= 0)
+		{
+			F = F - 2 * (currentstepX - centerstepX) + 1;
+			interp_result.stepX = 1;
+		}
+		else
+		{
+			F = F - 2 * (currentstepY - centerstepY) + 1;
+			interp_result.stepY = 1;
+		}
+    }
+
+	interp_result.errX = F;
 
 	return interp_result;
 }
