@@ -66,6 +66,7 @@ interp_result_t INTERP_CircleCWCalcStep(int32_t currentstepX, int32_t currentste
 {
 	interp_result.stepX = 0;
 	interp_result.stepY = 0;
+	interp_result.stepZ = 0;
 
     if(currentstepX - centerstepX >= 0 && currentstepY - centerstepY >= 0) // QUADRANT 1
     {
@@ -129,6 +130,7 @@ interp_result_t INTERP_CircleCCWCalcStep(int32_t currentstepX, int32_t currentst
 {
 	interp_result.stepX = 0;
 	interp_result.stepY = 0;
+	interp_result.stepZ = 0;
 
 	if(currentstepX - centerstepX >= 0 && currentstepY - centerstepY >= 0) // QUADRANT 1
     {

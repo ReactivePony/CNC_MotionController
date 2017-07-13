@@ -56,8 +56,7 @@ uint32_t targetSpeed = 0;
 uint32_t currentSpeed = 0;
 uint32_t accel = 25;
 
-interp_result_t interp_result = {0, 0, 0};
-interp_linear_result_t interp_linear_result = {0, 0, 0, 0 ,0 ,0};
+interp_result_t interp_result = {0, 0, 0, 0 ,0 ,0};
 
 void MOTION_StepTimer()
 {
@@ -65,7 +64,7 @@ void MOTION_StepTimer()
 
 	PIT_GetDefaultConfig(&pit_config);
 	PIT_Init(PIT, &pit_config);
-	PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / 20000);
+	PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / 500);
 	PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
 
 	EnableIRQ(PIT0_IRQn);
@@ -89,29 +88,28 @@ void PIT0_IRQHandler() // Step Timer Interrupt
 	switch (motion_state)
 	{
 		case kMOTION_Idle:
-			interp_linear_result.errX = 0;
-			interp_linear_result.errY = 0;
-			interp_linear_result.errZ = 0;
-			interp_result.F = 0;
+			interp_result.errX = 0;
+			interp_result.errY = 0;
+			interp_result.errZ = 0;
 			break;
 
 		case kMOTION_Linear:
 			if(deltaStepX > 0 || deltaStepY > 0 || deltaStepZ > 0)
-				interp_linear_result = INTERP_LinearCalcStep(destStepX, destStepY, destStepZ, originStepX, originStepY, originStepZ, interp_linear_result.errX, interp_linear_result.errY, interp_linear_result.errZ);
+				interp_result = INTERP_LinearCalcStep(destStepX, destStepY, destStepZ, originStepX, originStepY, originStepZ, interp_result.errX, interp_result.errY, interp_result.errZ);
 			else
 				motion_state = kMOTION_Idle;
 			break;
 
 		case kMOTION_CircleCW:
 			if(deltaStepX > 0 || deltaStepY > 0)
-				interp_result = INTERP_CircleCWCalcStep(currentStepX, currentStepY, centerStepX, centerStepY, interp_result.F);
+				interp_result = INTERP_CircleCWCalcStep(currentStepX, currentStepY, centerStepX, centerStepY, interp_result.errX);
 			else
 				motion_state = kMOTION_Idle;
 			break;
 
 		case kMOTION_CircleCCW:
 			if(deltaStepX > 0 || deltaStepY > 0)
-				interp_result = INTERP_CircleCCWCalcStep(currentStepX, currentStepY, centerStepX, centerStepY, interp_result.F);
+				interp_result = INTERP_CircleCCWCalcStep(currentStepX, currentStepY, centerStepX, centerStepY, interp_result.errX);
 			else
 				motion_state = kMOTION_Idle;
 			break;
@@ -121,34 +119,34 @@ void PIT0_IRQHandler() // Step Timer Interrupt
 
 	if(motion_state != kMOTION_Idle)
 	{
-		if(interp_linear_result.stepX > 0)
+		if(interp_result.stepX > 0)
 		{
 			MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CW);
 			currentStepX += 1;
 		}
-		else if(interp_linear_result.stepX < 0)
+		else if(interp_result.stepX < 0)
 		{
 			MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CCW);
 			currentStepX -= 1;
 		}
 
-		if(interp_linear_result.stepY > 0)
+		if(interp_result.stepY > 0)
 		{
 			MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CW);
 			currentStepY += 1;
 		}
-		else if(interp_linear_result.stepY < 0)
+		else if(interp_result.stepY < 0)
 		{
 			MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CCW);
 			currentStepY -= 1;
 		}
 
-		if(interp_linear_result.stepZ > 0)
+		if(interp_result.stepZ > 0)
 		{
 			MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CW);
 			currentStepZ += 1;
 		}
-		else if(interp_linear_result.stepZ < 0)
+		else if(interp_result.stepZ < 0)
 		{
 			MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CCW);
 			currentStepZ -= 1;
@@ -181,11 +179,11 @@ void PIT1_IRQHandler() // Accel Timer Interrupt
 	{
 		if(currentVectorLenght >= originVectorLenght - targetSpeed / accel)
 		{
-			currentSpeed = (originVectorLenght - currentVectorLenght + 1) * targetSpeed / (targetSpeed / accel) + 1000;
+			currentSpeed = (originVectorLenght - currentVectorLenght + 1) * targetSpeed / (targetSpeed / accel) + 500;
 		}
 		else if(currentVectorLenght < currentSpeed / accel)
 		{
-			currentSpeed = currentVectorLenght * targetSpeed / (targetSpeed / accel) + 1000;
+			currentSpeed = currentVectorLenght * targetSpeed / (targetSpeed / accel) + 500;
 		}
 
 		PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / currentSpeed);
