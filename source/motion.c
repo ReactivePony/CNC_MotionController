@@ -44,8 +44,9 @@ int32_t centerStepZ = 0;
 int32_t centerStepA = 0;
 int32_t centerStepB = 0;
 
-int32_t deltaStepA = 0;
-int32_t deltaStepB = 0;
+int32_t deltaStepX = 0;
+int32_t deltaStepY = 0;
+int32_t deltaStepZ = 0;
 
 uint16_t stepsPerMillimeter = (200 * STEP_DIVIDER) / 2;
 
@@ -56,6 +57,7 @@ uint32_t currentSpeed = 0;
 uint32_t accel = 25;
 
 interp_result_t interp_result = {0, 0, 0};
+interp_linear_result_t interp_linear_result = {0, 0, 0, 0 ,0 ,0};
 
 void MOTION_StepTimer()
 {
@@ -63,11 +65,10 @@ void MOTION_StepTimer()
 
 	PIT_GetDefaultConfig(&pit_config);
 	PIT_Init(PIT, &pit_config);
-	PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / 500);
+	PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / 20000);
 	PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
 
 	EnableIRQ(PIT0_IRQn);
-
 
 	PIT_StartTimer(PIT, kPIT_Chnl_0);
 }
@@ -76,153 +77,82 @@ void PIT0_IRQHandler() // Step Timer Interrupt
 {
 	PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
 
-	if(motion_state != kMOTION_Idle)
-	{
-		if(motion_plane == kMOTION_PlaneXY)
-		{
-			destStepA = destStepX;
-			destStepB = destStepY;
-			originStepA = originStepX;
-			originStepB = originStepY;
-			currentStepA = currentStepX;
-			currentStepB = currentStepY;
-			centerStepA = centerStepX;
-			centerStepB = centerStepY;
-
-			deltaStepA = fabs(destStepX - originStepX) - fabs(currentStepX - originStepX);
-			deltaStepB = fabs(destStepY - originStepY) - fabs(currentStepY - originStepY);
-
-			if(interp_result.stepA > 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CW);
-				currentStepX += 1;
-			}
-			else if(interp_result.stepA < 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CCW);
-				currentStepX -= 1;
-			}
-
-			if(interp_result.stepB > 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CW);
-				currentStepY += 1;
-			}
-			else if(interp_result.stepB < 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CCW);
-				currentStepY -= 1;
-			}
-		}
-
-		if(motion_plane == kMOTION_PlaneXZ)
-		{
-			destStepA = destStepX;
-			destStepB = destStepZ;
-			originStepA = originStepX;
-			originStepB = originStepZ;
-			currentStepA = currentStepX;
-			currentStepB = currentStepZ;
-			centerStepA = centerStepX;
-			centerStepB = centerStepZ;
-
-			deltaStepA = fabs(destStepX - originStepX) - fabs(currentStepX - originStepX);
-			deltaStepB = fabs(destStepZ - originStepZ) - fabs(currentStepZ - originStepZ);
-
-			if(interp_result.stepA > 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CW);
-				currentStepX += 1;
-			}
-			else if(interp_result.stepA < 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CCW);
-				currentStepX -= 1;
-			}
-
-			if(interp_result.stepB > 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CW);
-				currentStepZ += 1;
-			}
-			else if(interp_result.stepB < 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CCW);
-				currentStepZ -= 1;
-			}
-		}
-
-		if(motion_plane == kMOTION_PlaneYZ)
-		{
-			destStepA = destStepY;
-			destStepB = destStepZ;
-			originStepA = originStepY;
-			originStepB = originStepZ;
-			currentStepA = currentStepY;
-			currentStepB = currentStepZ;
-			centerStepA = centerStepY;
-			centerStepB = centerStepZ;
-
-			deltaStepA = fabs(destStepY - originStepY) - fabs(currentStepY - originStepY);
-			deltaStepB = fabs(destStepZ - originStepZ) - fabs(currentStepZ - originStepZ);
-
-			if(interp_result.stepA > 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CW);
-				currentStepY += 1;
-			}
-			else if(interp_result.stepA < 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CCW);
-				currentStepY -= 1;
-			}
-
-			if(interp_result.stepB > 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CW);
-				currentStepZ += 1;
-			}
-			else if(interp_result.stepB < 0)
-			{
-				MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CCW);
-				currentStepZ -= 1;
-			}
-		}
-	}
-
 	if(motion_speed_mode == kMOTION_Normal)
 		targetSpeed = normalSpeed;
 	else if(motion_speed_mode == kMOTION_Rapid)
 		targetSpeed = maxSpeed * stepsPerMillimeter / 60;
 
+	deltaStepX = fabs(destStepX - originStepX) - fabs(currentStepX - originStepX);
+	deltaStepY = fabs(destStepY - originStepY) - fabs(currentStepY - originStepY);
+	deltaStepZ = fabs(destStepZ - originStepZ) - fabs(currentStepZ - originStepZ);
+
 	switch (motion_state)
 	{
 		case kMOTION_Idle:
+			interp_linear_result.errX = 0;
+			interp_linear_result.errY = 0;
+			interp_linear_result.errZ = 0;
 			interp_result.F = 0;
 			break;
 
 		case kMOTION_Linear:
-			if(deltaStepA > 0 || deltaStepB > 0)
-				interp_result = INTERP_LinearCalcStep(destStepA, destStepB, originStepA, originStepB, interp_result.F);
+			if(deltaStepX > 0 || deltaStepY > 0 || deltaStepZ > 0)
+				interp_linear_result = INTERP_LinearCalcStep(destStepX, destStepY, destStepZ, originStepX, originStepY, originStepZ, interp_linear_result.errX, interp_linear_result.errY, interp_linear_result.errZ);
 			else
 				motion_state = kMOTION_Idle;
 			break;
 
 		case kMOTION_CircleCW:
-			if(deltaStepA > 0 || deltaStepB > 0)
-				interp_result = INTERP_CircleCWCalcStep(currentStepA, currentStepB, centerStepA, centerStepB, interp_result.F);
+			if(deltaStepX > 0 || deltaStepY > 0)
+				interp_result = INTERP_CircleCWCalcStep(currentStepX, currentStepY, centerStepX, centerStepY, interp_result.F);
 			else
 				motion_state = kMOTION_Idle;
 			break;
 
 		case kMOTION_CircleCCW:
-			if(deltaStepA > 0 || deltaStepB > 0)
-				interp_result = INTERP_CircleCCWCalcStep(currentStepA, currentStepB, centerStepA, centerStepB, interp_result.F);
+			if(deltaStepX > 0 || deltaStepY > 0)
+				interp_result = INTERP_CircleCCWCalcStep(currentStepX, currentStepY, centerStepX, centerStepY, interp_result.F);
 			else
 				motion_state = kMOTION_Idle;
 			break;
 		default:
 			break;
+	}
+
+	if(motion_state != kMOTION_Idle)
+	{
+		if(interp_linear_result.stepX > 0)
+		{
+			MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CW);
+			currentStepX += 1;
+		}
+		else if(interp_linear_result.stepX < 0)
+		{
+			MOTION_MakeStep(kMOTION_AxisX, kMOTION_Direction_CCW);
+			currentStepX -= 1;
+		}
+
+		if(interp_linear_result.stepY > 0)
+		{
+			MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CW);
+			currentStepY += 1;
+		}
+		else if(interp_linear_result.stepY < 0)
+		{
+			MOTION_MakeStep(kMOTION_AxisY, kMOTION_Direction_CCW);
+			currentStepY -= 1;
+		}
+
+		if(interp_linear_result.stepZ > 0)
+		{
+			MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CW);
+			currentStepZ += 1;
+		}
+		else if(interp_linear_result.stepZ < 0)
+		{
+			MOTION_MakeStep(kMOTION_AxisZ, kMOTION_Direction_CCW);
+			currentStepZ -= 1;
+		}
 	}
 }
 
@@ -244,18 +174,18 @@ void PIT1_IRQHandler() // Accel Timer Interrupt
 {
 	PIT_ClearStatusFlags(PIT, kPIT_Chnl_1, PIT_TFLG_TIF_MASK);
 
-	float currentVectorLenght = sqrtf(powf(destStepA - currentStepA, 2) + powf(destStepB - currentStepB, 2));
-	float originVectorLenght = sqrt(powf(destStepA - originStepA, 2) + powf(destStepB - originStepB, 2));
+	float currentVectorLenght = sqrtf(powf(destStepX - currentStepX, 2) + powf(destStepY - currentStepY, 2) + powf(destStepZ - currentStepZ, 2));
+	float originVectorLenght = sqrt(powf(destStepX - originStepX, 2) + powf(destStepY - originStepY, 2) + powf(destStepZ - originStepZ, 2));
 
 	if(motion_state != kMOTION_Idle)
 	{
 		if(currentVectorLenght >= originVectorLenght - targetSpeed / accel)
 		{
-			currentSpeed = (originVectorLenght - currentVectorLenght + 1) * targetSpeed / (targetSpeed / accel) + 500;
+			currentSpeed = (originVectorLenght - currentVectorLenght + 1) * targetSpeed / (targetSpeed / accel) + 1000;
 		}
 		else if(currentVectorLenght < currentSpeed / accel)
 		{
-			currentSpeed = currentVectorLenght * targetSpeed / (targetSpeed / accel) + 500;
+			currentSpeed = currentVectorLenght * targetSpeed / (targetSpeed / accel) + 1000;
 		}
 
 		PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / currentSpeed);
