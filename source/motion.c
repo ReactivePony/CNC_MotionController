@@ -23,26 +23,18 @@ motion_plane_t motion_plane = kMOTION_PlaneXY;
 int32_t currentStepX = 0;
 int32_t currentStepY = 0;
 int32_t currentStepZ = 0;
-int32_t currentStepA = 0;
-int32_t currentStepB = 0;
 
 int32_t destStepX = 0;
 int32_t destStepY = 0;
 int32_t destStepZ = 0;
-int32_t destStepA = 0;
-int32_t destStepB = 0;
 
 int32_t originStepX = 0;
 int32_t originStepY = 0;
 int32_t originStepZ = 0;
-int32_t originStepA = 0;
-int32_t originStepB = 0;
 
 int32_t centerStepX = 0;
 int32_t centerStepY = 0;
 int32_t centerStepZ = 0;
-int32_t centerStepA = 0;
-int32_t centerStepB = 0;
 
 int32_t deltaStepX = 0;
 int32_t deltaStepY = 0;
@@ -50,11 +42,11 @@ int32_t deltaStepZ = 0;
 
 uint16_t stepsPerMillimeter = (200 * STEP_DIVIDER) / 2;
 
-uint32_t maxSpeed = 2000;
+uint32_t maxSpeed = 40000;
 uint32_t normalSpeed = 0;
 uint32_t targetSpeed = 0;
 uint32_t currentSpeed = 0;
-uint32_t accel = 25;
+double accel = 100000;
 
 interp_result_t interp_result = {0, 0, 0, 0 ,0 ,0};
 
@@ -79,7 +71,7 @@ void PIT0_IRQHandler() // Step Timer Interrupt
 	if(motion_speed_mode == kMOTION_Normal)
 		targetSpeed = normalSpeed;
 	else if(motion_speed_mode == kMOTION_Rapid)
-		targetSpeed = maxSpeed * stepsPerMillimeter / 60;
+		targetSpeed = maxSpeed;
 
 	deltaStepX = fabs(destStepX - originStepX) - fabs(currentStepX - originStepX);
 	deltaStepY = fabs(destStepY - originStepY) - fabs(currentStepY - originStepY);
@@ -172,19 +164,23 @@ void PIT1_IRQHandler() // Accel Timer Interrupt
 {
 	PIT_ClearStatusFlags(PIT, kPIT_Chnl_1, PIT_TFLG_TIF_MASK);
 
-	float currentVectorLenght = sqrtf(powf(destStepX - currentStepX, 2) + powf(destStepY - currentStepY, 2) + powf(destStepZ - currentStepZ, 2));
-	float originVectorLenght = sqrt(powf(destStepX - originStepX, 2) + powf(destStepY - originStepY, 2) + powf(destStepZ - originStepZ, 2));
+	double t = (targetSpeed - currentSpeed) / accel;
+	double S = pow(targetSpeed, 2) / (2 * accel);
+	double S2 = pow(currentSpeed, 2) / (2 * accel);
+	double v = sqrt((pow(currentSpeed, 2) + 2 * accel * S));
+
+
+	double currentVectorLenght = sqrtf(powf(destStepX - currentStepX, 2) + powf(destStepY - currentStepY, 2) + powf(destStepZ - currentStepZ, 2));
+	double originVectorLenght = sqrt(powf(destStepX - originStepX, 2) + powf(destStepY - originStepY, 2) + powf(destStepZ - originStepZ, 2));
 
 	if(motion_state != kMOTION_Idle)
 	{
-		if(currentVectorLenght >= originVectorLenght - targetSpeed / accel)
-		{
-			currentSpeed = (originVectorLenght - currentVectorLenght + 1) * targetSpeed / (targetSpeed / accel) + 500;
-		}
-		else if(currentVectorLenght < currentSpeed / accel)
-		{
-			currentSpeed = currentVectorLenght * targetSpeed / (targetSpeed / accel) + 500;
-		}
+		if(currentVectorLenght >= S2 && currentSpeed < targetSpeed)
+			currentSpeed += accel / 500;
+		else if(currentSpeed > 100)
+			currentSpeed -= accel / 500;
+		if(currentSpeed < 100)
+			currentSpeed = 100;
 
 		PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, SystemCoreClock / currentSpeed);
 	}
